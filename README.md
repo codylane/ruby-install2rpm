@@ -39,11 +39,11 @@ the bin/ directory.
 
 Directory Structure
 ===================
-bin/   -> Contains all the binaries need to create the new build
-build/ -> Contails the unpacked source tar.gz file
-gems/  -> The downloaded default gems to package into the ruby environment
-./     -> The root directory of this project also where you place the
-          source for ruby-version.tar.gz.
+bin/   -> Contains all the binaries need to create the new build<br>
+build/ -> Contails the unpacked source tar.gz file<br>
+gems/  -> The downloaded default gems to package into the ruby environment<br>
+./     -> The root directory of this project also where you place the<br>
+          source for ruby-version.tar.gz.<br>
 
 You download the source files for the environment you want to build and 
 place it into root directory of the cloned repo.  For example, if you
