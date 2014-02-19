@@ -21,6 +21,10 @@ These distros has always been my main platform and this script currently
 tries to install all the required packages for you before the build 
 takes place but the current package names are CentOS/RedHat sytle.
 
+NOTE: This also assumes you have local copies of the source ruby
+environment as well as the gems you want to install.  I took this approach
+to limit the amount of deltas between versions.  
+
 Overview
 ========
 Build an entire base ruby environment from source and create a RPM spec.
