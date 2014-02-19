@@ -1,0 +1,81 @@
+#!/bin/bash
+###############################################################################
+# Author: Cody Lane
+# Date: 11-10-2011
+#
+###############################################################################
+
+# global variables
+CMD="${0##*/}"
+BIN_DIR="${0%/*}"
+
+# make sure we are running from the script locaction
+cd "$BIN_DIR"
+BIN_DIR="$(pwd)"
+
+# set the full path to the root dir
+cd "../"
+ROOT_DIR="$(pwd)"
+cd - >>/dev/null
+
+RUBY_ENV="rubyenv.sh"
+
+function err() {
+    echo "ERR: $*... Exiting"    
+    exit 1
+}
+
+### main ###
+
+# look for rubyenv.sh script in same directory... If not found, try to set this
+# environment
+[ ! -e "$RUBY_ENV" ] && err "Unable to find environment script '$RUBY_ENV', unable to continue"
+
+source "$RUBY_ENV"
+
+echo "Testing ruby install"
+$RUBY_DIR/bin/ruby -v
+[ $? -ne 0 ] && err "Unable to invoke ruby from '$RUBY_DIR'"
+
+[ ! -d "$ROOT_DIR" ] && err "The root directory '$ROOT_DIR' doesn't exist"
+[ -z "$ROOT_DIR" ] && err "The root directory variable ROOT_DIR has not be set or is undefined."
+
+LOCAL_GEM_DIR="$ROOT_DIR/gems"
+
+[ -d "$LOCAL_GEM_DIR" ] || err "Gem directory '$LOCAL_GEM_DIR' doesn't exist"
+
+# ensure the gem command is installed, if not attempt to install one
+if [ ! -e "$RUBY_DIR/bin/gem" ]; then
+	echo "Installing ruby gems"
+
+	RUBYGEMS=$(find "$ROOT_DIR" -iname "rubygems*" -type f | sort | tail -1)
+	[ -z "$RUBYGEMS" ] && err "No rubygems tar file exists unable to install, gem command"
+
+	rm -rf $BUILD_DIR/rubygems-*
+	BUILD_DIR="$(cd ../build && pwd)"
+	tar zxf "$RUBYGEMS" -C "$BUILD_DIR"
+	cd $BUILD_DIR/rubygems-*
+	eval "$RUBY_DIR/bin/ruby setup.rb"
+	rm -rf $BUILD_DIR/rubygems-*
+fi
+
+# install all the gems in the LOCAL_GEM_DIR
+gem uninstall rake -v0.8.7
+eval gem install --local --force "$LOCAL_GEM_DIR/rake*.gem"
+eval gem install --local --force "$LOCAL_GEM_DIR/bundler*.gem"
+
+#echo "Trying to build apache2 module for passenger"
+#echo
+#
+# The weird here doc is here so you don't have to press enter when it prompts you to
+#passenger-install-apache2-module << EOF
+#
+#
+#EOF
+#
+#MOD_PASSENGER_SO=$(find "$RUBY_DIR" -iname "mod_passenger.so" -type f)
+#[ -z "$MOD_PASSENGER_SO" ] && err "Unable to find the mod_passenger.so from '$RUBY_DIR'"
+#
+#ln -s "$MOD_PASSENGER_SO" "$LD_LIBRARY_PATH"/mod_passenger.so
+
+exit 0

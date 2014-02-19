@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# The directory that we will install the built package
+# this should be the root directory for the install.
+export INSTALL_ROOT_DIR="/opt"
+
+# compile options to be used
+export CONFIGURE_OPTS="--enable-shared,--enable-rpath,--disable-install-doc,--without-X11,--without-tk"
+
+# make install options
+#export MAKE_INSTALL_OPTS="DESTDIR=/some/path"
+
+# The version of ruby
+export RUBY_VER="1.9.2-p290"
+export RUBY="ruby-${RUBY_VER}"
+export RUBY_DIR="$INSTALL_ROOT_DIR/$RUBY"
+
+# This is the tar file that will contain the built package
+export OUTPUT_TARGZ="${RUBY}-environment.tar.gz"
+
+# The RPM release version, make sure to increment this if you make changes
+export RPM_RELEASE_VER="1"

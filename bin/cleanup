@@ -1,0 +1,23 @@
+#!/bin/bash
+
+function rm-dir() {
+    if [ -n "$1" ] && [ -d "$1" ]; then
+        echo "Removing directory: $1"
+        rm -rf "$1"
+        return $?
+    fi
+}
+
+function usage() {
+    echo "Usage: $0 <dir1> <dir2> <dir3> ... <dir n>"
+    echo 
+    echo " Removes the directories specified on the command line"
+    exit 0
+}
+
+[ "$#" -eq 0 ] && usage
+
+for dir in "$@"
+do
+    rm-dir "$dir"
+done

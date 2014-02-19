@@ -1,0 +1,30 @@
+#!/bin/bash
+# Apply any patches that need to be applied
+function err() {
+	echo "ERR: $* exiting"
+	exit 1
+}
+
+# global variables
+CMD="${0##*/}"
+BIN_DIR="${0%/*}"
+
+cd $BIN_DIR
+
+[ -z "$RUBY" ] && err "required variable RUBY is not set, unable to continue"
+[ -z "$BUILD_DIR" ] && err "required variable BUILD_DIR is not set, unable to continue"
+
+PATCH_DIR="../patches"
+
+## main ##
+if [ -d "$PATCH_DIR" ] && [ -d "$PATCH_DIR/$RUBY" ]; then
+	PATCH_DIR="$PATCH_DIR/$RUBY"
+	PATCH_DIR=$(cd $PATCH_DIR && pwd)
+
+	for PFILE in $(find $PATCH_DIR -iname "*.patch" | sort)
+	do
+		PLEVEL=$(sed -n "/--- /p" "$PFILE" | tr -d -c '/' | wc -c)
+		PLEVEL=$((PLEVEL - 1))
+		[ "$PLEVEL" -ge 1 ] && patch -N -p${PLEVEL} -d "$BUILD_DIR/$RUBY" -i $PFILE
+	done
+fi 

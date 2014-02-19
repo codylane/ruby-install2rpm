@@ -1,0 +1,164 @@
+#!/bin/bash
+###############################################################################
+# Author: Cody Lane
+# Date: 11-9-2011
+#
+# A helper script for building packages using configure, make, make install 
+###############################################################################
+
+# global variables
+CMD="${0##*/}"
+BIN_DIR="${0%/*}"
+
+# make sure we are running from the script locaction
+cd "$BIN_DIR"
+BIN_DIR="$(pwd)"
+
+# set the full path to the root dir
+cd "../"
+ROOT_DIR="$(pwd)"
+cd - >>/dev/null
+
+[ -z "$ROOT_DIR" ] && err "The root directory variable ROOT_DIR has not be set or is undefined."
+
+function err() {
+    echo "ERR: $*" >&2
+    exit 1
+}
+
+function build() {
+    cd "$BUILD_DIR"
+    pwd
+    rm -rf "$PKG"
+
+    # upack the tar
+    tar zxvf "$INPUT_TARGZ" -C "$BUILD_DIR"
+    [ $? -ne 0 ] && err "failed to unpack tar file '$INPUT_TARGZ' to directory '$BUILD_DIR'"
+
+    cd "$PKG"
+    pwd
+
+    # apply any patches that we need to
+    export BUILD_DIR
+    export RUBY
+    eval $BIN_DIR/apply-patches
+
+    # try to build the package
+    if [ -e "configure" ]; then
+        echo "Runing configure with options: '$@'"
+        eval CFLAGS='$CFLAGS' ./configure "$@"
+        [ $? -ne 0 ] && err "failed to run configure $*"
+    fi
+
+    eval make
+    [ $? -ne 0 ] && err "failed to run make"
+
+    cd - >>/dev/null
+}
+
+function make-install() {
+    cd "$BUILD_DIR"
+    pwd
+
+    cd "$PKG"
+    pwd
+    
+    echo "Running make install with options '$*'"
+    eval make "$*" install
+    [ $? -ne 0 ] && err "failed to run make $* install"
+
+    cd - >>/dev/null
+}
+
+function usage() {
+    echo "Usage: $CMD [options]"
+    echo 
+    echo "Tries to run a build using ./configure, make, make install"
+    echo 
+    echo "[options]"
+    echo " -p|--package            The name of the package. NOTE: That this name will be used"
+    echo "                         to find the source tar.gz file."
+    echo " -i|--install-dir        The path to where you would like the package to be built."
+    echo "                         You just need to specify the root directory becuase the"
+    echo "                         package name will be added to the end of the directory"
+    echo "                         specified."
+    echo "                         ./$CMD -p mypackage -i /opt => installs to /opt/mypackage"
+    echo " -c|--configure-opts     The configure options to use for the build. Multiple "
+    echo "                         arguments can be used with a ',' between each argument"
+    echo "                         and no space."
+    echo "                         --enable-shared,--disable-rpath"
+    echo
+    echo " -m|--make-install-opts  The install options to use for make, as with"
+    echo "                         --configure-opts use mutliple arguments with a comma"
+    echo "                         between each argument."
+    echo ""
+    exit 0
+}
+
+### main ###
+
+# setup our path so we can call our scripts 
+export PATH="$(pwd):$PATH"
+
+# command line options
+while [ -n "${1%%*-}" ]
+do
+    case $1 in
+        -p|--package)
+            shift
+            PKG="$1"
+            INPUT_TARGZ="$ROOT_DIR/${PKG}.tar.gz"
+            [ -e "$INPUT_TARGZ" ] || err "Unable to locate source file '$INPUT_TARGZ'"
+        ;;
+        -i|--install-dir)
+            shift
+            INSTALL_DIR="$1"
+        ;;
+        -c|--configure-opts)
+            shift
+            CONFIGURE_OPTS="$1"
+        ;;
+        -m|--make-install-opts)
+            shift
+            MAKE_INSTALL_OPTS="$1"
+        ;;
+        -h|--help)
+            usage
+        ;;
+	CFLAGS=)
+		shift
+		CFLAGS="$1"
+	;;
+    esac
+    shift
+done
+
+ME=$(whoami 2>>/dev/null)
+[ -z "$ME" ] || [ "$ME" != "root" ] && err "You must be root to run this script."
+
+# make sure the required global variables are set before continuing with the build
+[ -z "$PKG" ] && err "The package variable 'PKG' is not set (see usage)"
+[ -z "$INSTALL_DIR" ] && err "The variable INSTALL_DIR is not set (see usage)"
+
+INSTALL_DIR="$INSTALL_DIR/$PKG"
+
+# The BUILD_DIR is the directory that we will unpack the tar.gz file to
+BUILD_DIR="$ROOT_DIR/build"
+
+# make sure our required directory are built
+[ -d "$BUILD_DIR" ] || mkdir -p "$BUILD_DIR"
+
+# call the build function with some default arguments
+CONFIGURE_OPTS=$(echo "$CONFIGURE_OPTS" | sed -e 's/,/ /g')
+build "--prefix $INSTALL_DIR" "$CONFIGURE_OPTS"
+
+rm -rf "$INSTALL_DIR"
+
+# call the make install function with some default arguments
+MAKE_INSTALL_OPTS=$(echo "$MAKE_INSTALL_OPTS" | sed -e 's/,/ /g')
+make-install "$MAKE_INSTALL_OPTS"
+
+echo
+echo "Finished build and put the fully built package into '$INSTALL_DIR'"
+echo
+exit 0

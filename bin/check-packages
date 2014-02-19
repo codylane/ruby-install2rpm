@@ -1,0 +1,85 @@
+#!/bin/bash
+###############################################################################
+# Author: Cody Lane
+# Date: 11-11-2011
+#
+###############################################################################
+
+function err() {
+    echo "ERR: $*... Exiting."
+    exit 1
+}
+
+function not-installed() {
+    if [ -z "$NOT_INSTALLED" ]; then
+        NOT_INSTALLED="$1"
+        return
+    fi
+
+    NOT_INSTALLED="$NOT_INSTALLED $1"
+}
+
+function is-installed() {
+    [ -z "$1" ] && return 0
+
+    rpm -q "$1" >>/dev/null || not-installed "$1"
+}
+
+function usage() {
+    echo 
+    echo "Usage: $0 [-f|--file package-file] or package names on the command line"
+    echo 
+    echo " Description:"
+    echo " Query to see if the package is installed, you can either do this by"
+    echo " placing all the packages in a file seperated by white space or by"
+    echo " passing them all on the command line."
+    echo 
+    echo " [Options]"
+    echo " -f|--file  The path to the package file. Ex( --file /some/path/file)"
+    echo
+    exit 0
+}
+
+
+## main ##
+export PATH=/bin/rpm:$PATH
+
+CMDLINE_ARGS=$*
+
+while [ -n "${1%%*-}" ]
+do
+    case $1 in 
+        -f|--file)
+            shift 
+            PKG_FILE="$1"
+            ;;
+        -h|--help)
+            usage
+            ;;
+    esac
+    shift
+done
+
+[ -z "$PKG_FILE" ] && [ -z "$CMDLINE_ARGS" ] && usage
+[ -n "$PKG_FILE" ] && [ ! -e "$PKG_FILE" ] && err "The package file '$PKG_FILE' doesn't exist."
+
+if [ -n "$PKG_FILE" ]; then
+    QUERY_PKGS="$(cat $PKG_FILE)" 
+else
+    QUERY_PKGS=$CMDLINE_ARGS
+fi
+
+# loop through the packages to query and see if they are installed
+for Q_PKG in $QUERY_PKGS
+do
+    is-installed "$Q_PKG"
+done
+
+# if we have packages that are not installed, display them on standard out and exit 1
+# otherwise we will just exit 0
+if [ -n "$NOT_INSTALLED" ]; then
+    echo "$NOT_INSTALLED"
+    exit 1
+fi
+
+exit 0

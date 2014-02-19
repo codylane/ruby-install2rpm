@@ -1,0 +1,124 @@
+#!/bin/bash
+
+function usage() {
+    echo "$CMD Usage <environment.rc> "
+    echo
+    echo "The <environment.rc> config should contain all the required variables"
+    echo "so we can build a rpm spec file"
+    echo 
+    echo "This script is specific only to ruby but I suppose could be tweaked"
+    echo "for other instances and uses."
+    echo 
+    exit 0
+}
+
+function err(){ 
+    echo "ERR: $*... Exiting."
+    exit 1
+}
+
+### main ###
+
+# global variables
+CMD="${0##*/}"
+BIN_DIR="${0%/*}"
+
+# make sure we are running from the script locaction
+cd "$BIN_DIR"
+BIN_DIR="$(pwd)"
+
+[ "$#" -lt 1 ] && usage
+
+ENV_RC_FILE="$1"
+
+[ ! -e "$ENV_RC_FILE" ]  && err "Runtime Configuration file "$ENV_RC_FILE" doesn't exist, please create this file"
+source "$ENV_RC_FILE"
+
+# the required variables that should be set before we can continue
+[ -z "$RUBY_VER" ] && err "Required variable: RUBY_VER is not set, please set this variable in '$ENV_RC_FILE' or define on command line EX: RUBY=1.9.2-p290)"
+[ -z "$INSTALL_ROOT_DIR" ] && err "Required variable INSTALL_ROOT_DIR is not set, please set this variable in '$ENV_RC_FILE' or define on command line EX: INSTALL_ROOT_DIR=/opt"
+[ -z "$RUBY" ] && err "Requried variable RUBY is not set, please set this variable in '$ENV_RC_FILE' or define on command line EX: RUBY=ruby-\${RUBY_VER}"
+
+SPEC_FILE="${RUBY}.spec"
+
+cat > "$SPEC_FILE" << SPECFILE_EOF
+# Spec file auto generated on $(date +%Y-%m-%d) by user $(whoami) from script $CMD
+
+%define pkgname       ruby
+%define pkgver        ${RUBY_VER%-*}
+%define pkgverrel     ${RUBY_VER##*-p}
+%define ruby          %{pkgname}-%{pkgver}-p%{pkgverrel}
+%define installroot   ${INSTALL_ROOT_DIR#/}
+%define installdir    %{installroot}/%{ruby}
+##%define passengermod  mod_passenger.so
+%define apachemoddir  etc/httpd/modules
+
+Name:             %{pkgname}
+Version:          %{pkgver}.%{pkgverrel}
+Release:          ${RPM_RELEASE_VER}%{?dist}
+Summary:          Installer package for %{ruby}
+Group:            Development/Languages
+License:          Ruby License/GPL
+URL:              http://ftp.ruby-lang.org/pub/ruby/${RUBY_VER%-*}
+Source0:          %{ruby}-environment.tar.gz
+BuildRoot:        %{_tmppath}/%{name}-%{version}-%{pkgverrel}-%{release}-root-%(%{__id_u} -n)
+Packager:         Cody Lane <cody.lane@gmail.com.com>
+Requires:         httpd
+Provides:         ruby = %{pkgver}
+SPECFILE_EOF
+
+# run a script to get all the shared object files
+for i in $(find -L "$RUBY_DIR" -type f | egrep ".*\.so|.*\.so\.*")
+do
+	echo "Provides:         ${i}()" >>"$SPEC_FILE"
+done
+
+# run another script for all the gems that are installed
+for i in $("$RUBY_DIR"/bin/gem list | grep ' (' | sed -e 's/ (/=/g' -e 's/)//g')
+do
+	echo "Provides:         ${i}" | sed -e 's/=/ = /g' >>"$SPEC_FILE"
+done
+
+cat >> "$SPEC_FILE" << SPECFILE_EOF
+AutoReqProv:      no
+Requires(post):   findutils
+
+%description
+Ruby is the interpreted scripting language for quick and easy
+object-oriented programming.  It has many features to process text
+files and to do system management tasks (as in Perl).  It is simple,
+straight-forward, and extensible.
+
+%prep
+rm -fr %{ruby}
+mkdir -p %{ruby}
+cd %{ruby}
+tar zxvf %{SOURCE0}
+
+%install
+rm -fr %{buildroot}
+mkdir -p %{buildroot}
+cp -ra %{ruby}/%{installroot} %{buildroot}
+
+%clean
+rm -fr %{buildroot}
+
+%post
+##PASSENGER_MOD=\$(find /%{installroot} -iname "%{passengermod}" -type f)
+##[ -n "\$PASSENGER_MOD" ] && cp "\$PASSENGER_MOD" /%{apachemoddir}/
+cd /%{installroot}
+[ -L 'ruby' ] && unlink ruby
+ln -sf %{ruby} ruby
+
+%postun
+##rm -f /%{apachemoddir}/%{passengermod}
+rm -fr %{installdir}
+
+%files
+%defattr(-,root,root,-)
+/%{installdir}
+
+%changelog
+SPECFILE_EOF
+
+echo "Wrote spec file '$SPEC_FILE'"
