@@ -111,15 +111,15 @@ files/scripts.
 
 bin/install.sh => Is the master script, run this script with an
                   environment configuration as it's first argument without
-                  the .rc at the end. Example: ./install.sh rubyinstall
+                  the .rc at the end. Example: ./install.sh rubyinstall<br><br>
 
 bin/pkg.list   => This file contains a list of CentOS/RedHat/Fedora
                   package names used to build the new version of ruby.
-                  Each package name should be on it's own line.
+                  Each package name should be on it's own line.<br><br>
 
 bin/build-ruby => The heard of the Ruby compiling: configuring, make, make
                   install. This uses values contained in the
-                  ruby-version-install.rc run time configuration file.  
+                  ruby-version-install.rc run time configuration file.<br><br> 
 ```
 eval CFLAGS='$CFLAGS' ./build-ruby --package "$RUBY" --install-dir
 "$INSTALL_ROOT_DIR" --configure-opts "$CONFIGURE_OPTS"
@@ -149,11 +149,13 @@ To build a new ruby environment just run the following script.
 NOTE: Each time you run this script it will remove the old environment 
 and there are no warning messages.
 
-[INSTALL NOTES:]
+[INSTALL NOTES:]<br>
 Become root
+```
+sudo su -
 cd bin
-./install.sh rubyinstall
-
+./install.sh rubyinstall<br>
+```
 NOTE: You don't need to include the '.rc' at the end (even though on
 disk it is runinstall.rc)
 
