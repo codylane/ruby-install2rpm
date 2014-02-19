@@ -1,5 +1,5 @@
---- trunk/ext/openssl/ossl_pkey_ec.c  2013/07/05 22:16:09 41807
-+++ trunk/ext/openssl/ossl_pkey_ec.c  2013/07/05 22:46:42 41808
+--- ext/openssl/ossl_pkey_ec.c 
++++ ext/openssl/ossl_pkey_ec.c
 @@ -762,8 +762,10 @@
                  method = EC_GFp_mont_method();
              } else if (id == s_GFp_nist) {
