@@ -1,7 +1,7 @@
 diff --git a/lib/mkmf.rb b/lib/mkmf.rb
 index c9e738a..7a8004d 100644
---- a/lib/mkmf.rb
-+++ b/lib/mkmf.rb
+--- lib/mkmf.rb
++++ lib/mkmf.rb
 @@ -201,20 +201,26 @@ end
  module Logging
    @log = nil

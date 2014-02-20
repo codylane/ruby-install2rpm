@@ -24,7 +24,9 @@ if [ -d "$PATCH_DIR" ] && [ -d "$PATCH_DIR/$RUBY" ]; then
 	for PFILE in $(find $PATCH_DIR -iname "*.patch" | sort)
 	do
 		PLEVEL=$(sed -n "/--- /p" "$PFILE" | tr -d -c '/' | wc -c)
-		PLEVEL=$((PLEVEL - 1))
+		#PLEVEL=$((PLEVEL - 1))
+        PLEVEL=0
+        echo "Using patch level [$PLEVEL] command  [patch -N -p${PLEVEL} -d "$BUILD_DIR/$RUBY" -i $PFILE]"
 		[ "$PLEVEL" -ge 1 ] && patch -N -p${PLEVEL} -d "$BUILD_DIR/$RUBY" -i $PFILE
 	done
 fi 
