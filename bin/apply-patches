@@ -16,15 +16,27 @@ cd $BIN_DIR
 
 PATCH_DIR="../patches"
 
-## main ##
-if [ -d "$PATCH_DIR" ] && [ -d "$PATCH_DIR/$RUBY" ]; then
-	PATCH_DIR="$PATCH_DIR/$RUBY"
-	PATCH_DIR=$(cd $PATCH_DIR && pwd)
+function apply-the-patches() {
+    local _PATCH_DIR="$1"
 
-	for PFILE in $(find $PATCH_DIR -iname "*.patch" | sort)
+	for PFILE in $(find $_PATCH_DIR -maxdepth 1 -iname "*.patch" | sort)
 	do
         PLEVEL=0
         echo "Using patch level [$PLEVEL] command  [patch -N -p${PLEVEL} -d "$BUILD_DIR/$RUBY" -i $PFILE]"
 		[ "$PLEVEL" -ge 0 ] && patch -N -p${PLEVEL} -d "$BUILD_DIR/$RUBY" -i $PFILE
 	done
+}
+
+## main ##
+if [ -d "$PATCH_DIR" ] && [ -d "$PATCH_DIR/$RUBY" ]; then
+    PATCH_DIR=$(cd $PATCH_DIR && pwd)
+
+    # check to see if there are any global patches, fi so
+    # attempt to apply those first
+    apply-the-patches "$PATCH_DIR"
+
+	PATCH_DIR="$PATCH_DIR/$RUBY"
+	PATCH_DIR=$(cd $PATCH_DIR && pwd)
+
+    apply-the-patches "$PATCH_DIR"
 fi 
